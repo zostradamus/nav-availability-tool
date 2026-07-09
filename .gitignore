@@ -1,0 +1,7 @@
+# data & hasil - jangan pernah di-commit (berisi data internal)
+config.json
+cache/
+*.xlsx
+*.xlsb
+nav_log.txt
+__pycache__/
