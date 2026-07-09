@@ -193,9 +193,11 @@ CMDB_COLS = {"Site ID*": "SITEID_CM", "Site Type Label": "Site_Type",
 def find_cmdb_file():
     best = None
     for f in glob.glob(os.path.join(CMDB_DIR, "*.xlsx")):
-        m = re.search(r"W(\d+)", os.path.basename(f))
+        name = os.path.basename(f)
+        m = re.search(r"W(\d+)", name)
         if m:
-            key = (int(m.group(1)), os.path.basename(f))
+            mv = re.search(r"\bv(\d+)\b", name, re.I)  # "W20 v2" > "W20"
+            key = (int(m.group(1)), int(mv.group(1)) if mv else 1, name)
             if best is None or key > best[0]:
                 best = (key, f)
     return best[1] if best else None
