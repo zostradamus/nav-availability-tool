@@ -71,3 +71,13 @@ cache/                # dibuat otomatis: state, parquet mingguan, cache keluraha
 Batas kelurahan diolah dari [cahyadsn/wilayah_boundaries](https://github.com/cahyadsn/wilayah_boundaries) (MIT License).
 
 > **Catatan:** repo ini hanya berisi kode dan data referensi publik. Dataset NAV/CMDB serta hasil analisis adalah data internal perusahaan dan tidak disertakan (lihat `.gitignore`).
+
+
+DASHBOARD INTERAKTIF
+  Setiap run juga menghasilkan dashboard.html - buka di browser.
+  Fitur: ringkasan + trend, rekap per kecamatan (klik untuk detail site),
+  site explorer (filter kategori/kabupaten/pencarian, export CSV),
+  top 10 worst, analisis bulanan (site konsisten <98%), perbandingan
+  antar minggu, mode 2G / 4G / traffic, dan detail CMDB per site.
+  Kunci config: output_dashboard (default dashboard.html), ikut tersalin
+  ke folder copy_to.

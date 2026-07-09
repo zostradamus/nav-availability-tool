@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAV Dashboard - Central Java</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--red:#c0392b;--yel:#f39c12;--grn:#27ae60;--bg:#f4f6f8;--card:#fff;--txt:#2c3e50;--mut:#7f8c8d;--acc:#cc0000;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;}
+body{background:var(--bg);color:var(--txt);font-size:14px;}
+header{background:linear-gradient(135deg,#b30000,#e60000);color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+header h1{font-size:19px;}
+header .sub{font-size:12px;opacity:.85;}
+.tabs{display:flex;gap:4px;background:#fff;padding:8px 24px 0;border-bottom:2px solid #e0e0e0;flex-wrap:wrap;}
+.tab{padding:9px 18px;border:none;background:#eee;border-radius:8px 8px 0 0;cursor:pointer;font-size:13.5px;font-weight:600;color:#666;}
+.tab.active{background:var(--acc);color:#fff;}
+.filters{display:flex;gap:10px;padding:12px 24px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid #e8e8e8;}
+.filters label{font-size:12px;color:var(--mut);font-weight:600;}
+.filters select,.filters input{padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff;}
+main{padding:18px 24px;max-width:1500px;margin:0 auto;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+.card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.card .v{font-size:22px;font-weight:700;}
+.card .l{font-size:11.5px;color:var(--mut);margin-top:2px;}
+.card.grn .v{color:var(--grn);} .card.yel .v{color:var(--yel);} .card.red .v{color:var(--red);} .card.gry .v{color:#888;}
+.panel{background:var(--card);border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px;}
+.panel h3{font-size:14.5px;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{background:#fafafa;text-align:left;padding:7px 9px;border-bottom:2px solid #e5e5e5;cursor:pointer;user-select:none;white-space:nowrap;}
+td{padding:6px 9px;border-bottom:1px solid #f0f0f0;}
+tr:hover td{background:#fcf8f5;}
+.b{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;}
+.b0{background:var(--grn);} .b1{background:var(--yel);} .b2{background:var(--red);} .bx{background:#999;}
+.pct0{color:var(--grn);font-weight:600;} .pct1{color:var(--yel);font-weight:600;} .pct2{color:var(--red);font-weight:700;}
+.clk{cursor:pointer;color:#b30000;font-weight:600;text-decoration:underline dotted;}
+.exp td{background:#fdf6f6;}
+.inner{margin:6px 0;border:1px solid #eee;}
+.pag{display:flex;gap:6px;align-items:center;margin-top:10px;font-size:12.5px;}
+.pag button{padding:4px 10px;border:1px solid #ccc;background:#fff;border-radius:5px;cursor:pointer;}
+.pag button:disabled{opacity:.4;cursor:default;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:99;}
+.modal .box{background:#fff;border-radius:12px;padding:20px;max-width:860px;width:94%;max-height:88vh;overflow:auto;}
+.modal h3{margin-bottom:4px;}
+.close{float:right;border:none;background:#eee;border-radius:6px;padding:4px 12px;cursor:pointer;font-weight:700;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+.btn{padding:7px 14px;border:none;border-radius:6px;background:var(--acc);color:#fff;cursor:pointer;font-size:12.5px;font-weight:600;}
+.note{font-size:11.5px;color:var(--mut);margin-top:6px;}
+.meta{font-size:12px;color:var(--mut);display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;margin:8px 0;}
+canvas{max-height:300px;}
+.arrow{font-weight:700;}
+.up{color:var(--grn);} .down{color:var(--red);}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>&#128225; NAV Availability Dashboard &mdash; Central Java (IOH)</h1>
+  <div class="sub" id="subinfo"></div></div>
+  <div class="sub">Generated: <span id="gen"></span></div>
+</header>
+<div class="tabs">
+  <button class="tab active" data-t="overview">Ringkasan</button>
+  <button class="tab" data-t="kecamatan">Per Kecamatan</button>
+  <button class="tab" data-t="sites">Site Explorer</button>
+  <button class="tab" data-t="top">Top 10 Worst</button>
+  <button class="tab" data-t="monthly">Analisis Bulanan</button>
+  <button class="tab" data-t="compare">Perbandingan Minggu</button>
+</div>
+<div class="filters">
+  <label>Minggu</label><select id="fWeek"></select>
+  <label>Teknologi</label><select id="fTech"><option value="2g">2G</option><option value="4g">4G</option><option value="both">2G + 4G (traffic)</option></select>
+  <label>Kategori</label><select id="fCat"><option value="all">Semua</option><option value="0">100%</option><option value="1">98% - &lt;100%</option><option value="2">&lt;98%</option><option value="x">Tanpa data</option></select>
+  <label>Kabupaten</label><select id="fKab"><option value="all">Semua</option></select>
+  <label>Cari</label><input id="fQ" placeholder="site / kecamatan / kelurahan...">
+</div>
+<main id="content"></main>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<script>
+const P = __PAYLOAD__;
+const CATL=["100%","98% - <100%","<98%"], W=P.weeks, S=P.sites;
+const F={SID:0,NAME:1,KEL:2,KEC:3,KAB:4,MC:5,TYPE:6,TRAN:7,PRIO:8,OWN:9,GEN:10};
+const MON={};W.forEach((w,i)=>{const d=P.week_dates[i];const m=d.slice(0,4)+"-"+d.slice(4,6);(MON[m]=MON[m]||[]).push(w);});
+let tab="overview", sortK=null, sortD=1, page=0; const PSZ=100;
+const st={week:W[W.length-1],tech:"2g",cat:"all",kab:"all",q:""};
+const $=id=>document.getElementById(id);
+function av(w,i){const r=P.data[w][i];return st.tech==="4g"?r[1]:r[0];}
+function av2(w,i){return P.data[w][i][0];} function av4(w,i){return P.data[w][i][1];}
+function tr(w,i){const r=P.data[w][i];if(st.tech==="2g")return r[2];if(st.tech==="4g")return r[3];return (r[2]||0)+(r[3]||0);}
+function cat(v){if(v==null)return "x";return v>=0.999999995?0:(v>=0.98?1:2);}
+function pc(v){return v==null?"&mdash;":(v*100).toFixed(2)+"%";}
+function pcCls(v){const c=cat(v);return c==="x"?"":"pct"+c;}
+function badge(v){const c=cat(v);return c==="x"?'<span class="b bx">no data</span>':'<span class="b b'+c+'">'+CATL[c]+'</span>';}
+function gb(mb){return mb==null?"&mdash;":(mb/1024).toFixed(1)+" GB";}
+function fmtW(w){return w.replace("_"," ");}
+function pass(i){
+  const v=av(st.week,i);
+  if(st.cat!=="all"){const c=cat(v);if(String(c)!==st.cat)return false;}
+  if(st.kab!=="all"&&S[i][F.KAB]!==st.kab)return false;
+  if(st.q){const q=st.q.toLowerCase();const s=S[i];
+    if(!(s[F.SID]+" "+s[F.NAME]+" "+s[F.KEC]+" "+s[F.KEL]).toLowerCase().includes(q))return false;}
+  return true;}
+function activeIdx(){const a=[];for(let i=0;i<S.length;i++){if(P.data[st.week][i][0]==null&&P.data[st.week][i][1]==null)continue;a.push(i);}return a;}
+function init(){
+  $("gen").textContent=P.generated;
+  $("subinfo").textContent="Region "+P.region+" | "+S.length+" site | "+W.length+" minggu ("+fmtW(W[0])+" s/d "+fmtW(W[W.length-1])+")";
+  const fw=$("fWeek");W.forEach(w=>{const o=document.createElement("option");o.value=w;o.textContent=fmtW(w);fw.appendChild(o);});
+  fw.value=st.week;
+  [...new Set(S.map(s=>s[F.KAB]).filter(Boolean))].sort().forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;$("fKab").appendChild(o);});
+  fw.onchange=e=>{st.week=e.target.value;page=0;render();};
+  $("fTech").onchange=e=>{st.tech=e.target.value;page=0;render();};
+  $("fCat").onchange=e=>{st.cat=e.target.value;page=0;render();};
+  $("fKab").onchange=e=>{st.kab=e.target.value;page=0;render();};
+  $("fQ").oninput=e=>{st.q=e.target.value;page=0;render();};
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.dataset.t;
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));page=0;sortK=null;render();});
+  $("modal").onclick=e=>{if(e.target.id==="modal")$("modal").style.display="none";};
+  render();}
+function kpis(){
+  const idx=activeIdx();let n=0,sum=0,c=[0,0,0],nd=0,traf=0;
+  idx.forEach(i=>{const v=av(st.week,i);traf+=tr(st.week,i)||0;
+    if(v==null){nd++;return;}n++;sum+=v;c[cat(v)]++;});
+  return {n,avg:n?sum/n:null,c,nd,traf,total:idx.length};}
+function cardsHtml(k){
+  return '<div class="cards">'
+  +'<div class="card"><div class="v">'+k.total+'</div><div class="l">Site aktif minggu ini ('+(st.tech==="both"?"2G/4G":st.tech.toUpperCase())+')</div></div>'
+  +'<div class="card"><div class="v">'+(k.avg!=null?(k.avg*100).toFixed(2)+"%":"&mdash;")+'</div><div class="l">Rata-rata availability</div></div>'
+  +'<div class="card grn"><div class="v">'+k.c[0]+'</div><div class="l">Availability 100%</div></div>'
+  +'<div class="card yel"><div class="v">'+k.c[1]+'</div><div class="l">98% - <100%</div></div>'
+  +'<div class="card red"><div class="v">'+k.c[2]+'</div><div class="l">Di bawah 98%</div></div>'
+  +'<div class="card gry"><div class="v">'+k.nd+'</div><div class="l">Tanpa data NAV</div></div>'
+  +'<div class="card"><div class="v">'+gb(k.traf)+'</div><div class="l">Total traffic mingguan</div></div></div>';}
+function render(){
+  const el=$("content");
+  if(tab==="overview")rOverview(el);
+  else if(tab==="kecamatan")rKec(el);
+  else if(tab==="sites")rSites(el);
+  else if(tab==="top")rTop(el);
+  else if(tab==="monthly")rMonthly(el);
+  else rCompare(el);}
+function rOverview(el){
+  const k=kpis();
+  el.innerHTML=cardsHtml(k)
+  +'<div class="grid2"><div class="panel"><h3>Trend Availability per Minggu</h3><canvas id="cTrend"></canvas></div>'
+  +'<div class="panel"><h3>Distribusi Kategori per Minggu ('+st.tech.toUpperCase()+')</h3><canvas id="cCat"></canvas></div></div>'
+  +'<div class="panel"><h3>Trend Traffic Total per Minggu</h3><canvas id="cTraf"></canvas><div class="note">Traffic = jumlah IOH data traffic seluruh site region (GB).</div></div>';
+  if(typeof Chart==="undefined"){el.innerHTML+='<div class="panel">Chart.js tidak termuat (offline) - angka tetap tersedia di tab lain.</div>';return;}
+  const t2=[],t4=[],cc=[[],[],[]],tt2=[],tt4=[];
+  W.forEach(w=>{let n2=0,s2=0,n4=0,s4=0,c=[0,0,0],x2=0,x4=0;
+    for(let i=0;i<S.length;i++){const r=P.data[w][i];
+      if(r[0]!=null){n2++;s2+=r[0];}if(r[1]!=null){n4++;s4+=r[1];}
+      const v=st.tech==="4g"?r[1]:r[0];if(v!=null)c[cat(v)]++;
+      x2+=r[2]||0;x4+=r[3]||0;}
+    t2.push(n2?(s2/n2*100):null);t4.push(n4?(s4/n4*100):null);
+    cc[0].push(c[0]);cc[1].push(c[1]);cc[2].push(c[2]);
+    tt2.push(x2/1024);tt4.push(x4/1024);});
+  const wl=W.map(fmtW);
+  new Chart($("cTrend"),{type:"line",data:{labels:wl,datasets:[
+    {label:"2G",data:t2,borderColor:"#b30000",tension:.25},
+    {label:"4G",data:t4,borderColor:"#2980b9",tension:.25}]},
+    options:{scales:{y:{title:{display:true,text:"%"}}}}});
+  new Chart($("cCat"),{type:"bar",data:{labels:wl,datasets:[
+    {label:"100%",data:cc[0],backgroundColor:"#27ae60"},
+    {label:"98-<100%",data:cc[1],backgroundColor:"#f39c12"},
+    {label:"<98%",data:cc[2],backgroundColor:"#c0392b"}]},
+    options:{scales:{x:{stacked:true},y:{stacked:true}}}});
+  new Chart($("cTraf"),{type:"bar",data:{labels:wl,datasets:[
+    {label:"2G (GB)",data:tt2,backgroundColor:"#b30000"},
+    {label:"4G (GB)",data:tt4,backgroundColor:"#2980b9"}]},
+    options:{scales:{x:{stacked:true},y:{stacked:true}}}});}
+function rKec(el){
+  const m={};
+  for(let i=0;i<S.length;i++){if(!pass(i))continue;const v=av(st.week,i);
+    const kk=S[i][F.KEC]+"||"+S[i][F.KAB];
+    const o=m[kk]=m[kk]||{n:0,s:0,c:[0,0,0],nd:0,traf:0,idx:[]};
+    o.idx.push(i);o.traf+=tr(st.week,i)||0;
+    if(v==null){o.nd++;}else{o.n++;o.s+=v;o.c[cat(v)]++;}}
+  let rows=Object.entries(m).map(([kk,o])=>{const[kec,kab]=kk.split("||");
+    return {kec,kab,sites:o.idx.length,avg:o.n?o.s/o.n:null,c100:o.c[0],c98:o.c[1],cbad:o.c[2],nd:o.nd,traf:o.traf,idx:o.idx};});
+  const key=sortK||"avg";rows.sort((a,b)=>((a[key]==null)-(b[key]==null))||((a[key]>b[key]?1:-1)*sortD));
+  let h='<div class="panel"><h3>Rekap per Kecamatan &mdash; '+fmtW(st.week)+' ('+(st.tech==="both"?"2G":st.tech.toUpperCase())+')</h3>'
+  +'<table><thead><tr><th data-k="kec">Kecamatan</th><th data-k="kab">Kabupaten</th><th data-k="sites">Site</th><th data-k="avg">Avg Avail</th>'
+  +'<th data-k="c100">100%</th><th data-k="c98">98-<100%</th><th data-k="cbad">&lt;98%</th><th data-k="nd">No data</th><th data-k="traf">Traffic</th></tr></thead><tbody>';
+  rows.forEach((r,ri)=>{h+='<tr><td class="clk" onclick="kecDetail('+ri+')">'+r.kec+'</td><td>'+r.kab+'</td><td>'+r.sites+'</td>'
+    +'<td class="'+pcCls(r.avg)+'">'+pc(r.avg)+'</td><td>'+r.c100+'</td><td>'+r.c98+'</td><td>'+(r.cbad?'<b style="color:var(--red)">'+r.cbad+'</b>':0)+'</td><td>'+r.nd+'</td><td>'+gb(r.traf)+'</td></tr>';});
+  h+='</tbody></table><div class="note">Klik nama kecamatan untuk melihat detail site-nya. Klik header untuk sort.</div></div>';
+  el.innerHTML=h;window._kecRows=rows;bindSort(el,()=>rKec(el));}
+function kecDetail(ri){
+  const r=window._kecRows[ri];
+  let h='<button class="close" onclick="document.getElementById(\'modal\').style.display=\'none\'">&times;</button>'
+  +'<h3>Kecamatan '+r.kec+' ('+r.kab+')</h3><div class="note">'+r.sites+' site | Avg '+pc(r.avg)+' | minggu '+fmtW(st.week)+'</div>'
+  +'<table class="inner"><thead><tr><th>Site</th><th>Nama</th><th>Kelurahan</th><th>2G</th><th>4G</th><th>Traffic</th><th>Kategori</th><th>Transport</th><th>Owner</th></tr></thead><tbody>';
+  r.idx.sort((a,b)=>{const x=av(st.week,a),y=av(st.week,b);return (x==null)-(y==null)||x-y;}).forEach(i=>{
+    const s=S[i];h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td>'
+    +'<td class="'+pcCls(av2(st.week,i))+'">'+pc(av2(st.week,i))+'</td><td class="'+pcCls(av4(st.week,i))+'">'+pc(av4(st.week,i))+'</td>'
+    +'<td>'+gb((P.data[st.week][i][2]||0)+(P.data[st.week][i][3]||0))+'</td><td>'+badge(av(st.week,i))+'</td><td>'+(s[F.TRAN]||"")+'</td><td>'+(s[F.OWN]||"")+'</td></tr>';});
+  h+='</tbody></table>';
+  $("modalBox").innerHTML=h;$("modal").style.display="flex";}
+function siteDetail(i){
+  const s=S[i];
+  let h='<button class="close" onclick="document.getElementById(\'modal\').style.display=\'none\'">&times;</button>'
+  +'<h3>'+s[F.SID]+' &mdash; '+s[F.NAME]+'</h3>'
+  +'<div class="meta"><span><b>Kelurahan:</b> '+s[F.KEL]+'</span><span><b>Kecamatan:</b> '+s[F.KEC]+'</span>'
+  +'<span><b>Kabupaten:</b> '+s[F.KAB]+'</span><span><b>MC Cluster:</b> '+s[F.MC]+'</span>'
+  +'<span><b>Site Type:</b> '+(s[F.TYPE]||"-")+'</span><span><b>Transport:</b> '+(s[F.TRAN]||"-")+'</span>'
+  +'<span><b>Priority:</b> '+(s[F.PRIO]||"-")+'</span><span><b>Owner/Company:</b> '+(s[F.OWN]||"-")+'</span>'
+  +'<span><b>Genset:</b> '+(s[F.GEN]||"-")+'</span></div>'
+  +'<canvas id="cSite" height="120"></canvas>'
+  +'<table class="inner"><thead><tr><th>Minggu</th><th>Avail 2G</th><th>Avail 4G</th><th>Traffic 2G</th><th>Traffic 4G</th><th>Kategori (2G)</th></tr></thead><tbody>';
+  W.forEach(w=>{const r=P.data[w][i];
+    h+='<tr><td>'+fmtW(w)+'</td><td class="'+pcCls(r[0])+'">'+pc(r[0])+'</td><td class="'+pcCls(r[1])+'">'+pc(r[1])+'</td>'
+    +'<td>'+gb(r[2])+'</td><td>'+gb(r[3])+'</td><td>'+badge(r[0])+'</td></tr>';});
+  h+='</tbody></table>';
+  $("modalBox").innerHTML=h;$("modal").style.display="flex";
+  if(typeof Chart!=="undefined"){
+    new Chart($("cSite"),{type:"line",data:{labels:W.map(fmtW),datasets:[
+      {label:"2G %",data:W.map(w=>P.data[w][i][0]==null?null:P.data[w][i][0]*100),borderColor:"#b30000",tension:.25},
+      {label:"4G %",data:W.map(w=>P.data[w][i][1]==null?null:P.data[w][i][1]*100),borderColor:"#2980b9",tension:.25}]},
+      options:{scales:{y:{title:{display:true,text:"%"}}}}});}}
+function rSites(el){
+  const rows=[];
+  for(let i=0;i<S.length;i++){if(!pass(i))continue;
+    if(st.cat==="all"&&P.data[st.week][i][0]==null&&P.data[st.week][i][1]==null)continue;
+    rows.push(i);}
+  const key=sortK||"_av";
+  rows.sort((a,b)=>{
+    const va=key==="_av"?av(st.week,a):(key==="_tr"?tr(st.week,a):S[a][F[key]]);
+    const vb=key==="_av"?av(st.week,b):(key==="_tr"?tr(st.week,b):S[b][F[key]]);
+    return ((va==null)-(vb==null))||((va>vb?1:va<vb?-1:0)*sortD);});
+  const tot=rows.length, pg=rows.slice(page*PSZ,(page+1)*PSZ);
+  let h='<div class="panel"><h3>Site Explorer &mdash; '+tot+' site <button class="btn" style="float:right" onclick="expCsv()">Export CSV</button></h3>'
+  +'<table><thead><tr><th data-k="SID">Site ID</th><th data-k="NAME">Nama</th><th data-k="KEL">Kelurahan</th><th data-k="KEC">Kecamatan</th><th data-k="KAB">Kabupaten</th>'
+  +'<th data-k="_av">Avail</th><th>2G</th><th>4G</th><th data-k="_tr">Traffic</th><th>Kategori</th><th data-k="TRAN">Transport</th><th data-k="PRIO">Prio</th><th data-k="OWN">Owner</th></tr></thead><tbody>';
+  pg.forEach(i=>{const s=S[i];const v=av(st.week,i);
+    h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td>'
+    +'<td class="'+pcCls(v)+'">'+pc(v)+'</td><td class="'+pcCls(av2(st.week,i))+'">'+pc(av2(st.week,i))+'</td><td class="'+pcCls(av4(st.week,i))+'">'+pc(av4(st.week,i))+'</td>'
+    +'<td>'+gb(tr(st.week,i))+'</td><td>'+badge(v)+'</td><td>'+(s[F.TRAN]||"")+'</td><td>'+(s[F.PRIO]||"")+'</td><td>'+(s[F.OWN]||"")+'</td></tr>';});
+  h+='</tbody></table><div class="pag"><button '+(page===0?"disabled":"")+' onclick="page--;render()">&laquo; Prev</button>'
+  +'<span>Hal '+(page+1)+' / '+Math.max(1,Math.ceil(tot/PSZ))+'</span>'
+  +'<button '+((page+1)*PSZ>=tot?"disabled":"")+' onclick="page++;render()">Next &raquo;</button></div></div>';
+  el.innerHTML=h;window._csvRows=rows;bindSort(el,()=>rSites(el));}
+function expCsv(){
+  const rows=window._csvRows||[];const t=st.tech;
+  let c="SiteID;Nama;Kelurahan;Kecamatan;Kabupaten;MC;Avail_2G;Avail_4G;Traffic_2G_MB;Traffic_4G_MB;SiteType;Transport;Priority;Owner;Genset\n";
+  rows.forEach(i=>{const s=S[i],r=P.data[st.week][i];
+    c+=[s[F.SID],s[F.NAME],s[F.KEL],s[F.KEC],s[F.KAB],s[F.MC],r[0]==null?"":(r[0]*100).toFixed(3),r[1]==null?"":(r[1]*100).toFixed(3),r[2]||"",r[3]||"",s[F.TYPE],s[F.TRAN],s[F.PRIO],s[F.OWN],s[F.GEN]].join(";")+"\n";});
+  const b=new Blob([c],{type:"text/csv"});const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download="sites_"+st.week+"_"+t+".csv";a.click();}
+function rTop(el){
+  const rows=[];
+  for(let i=0;i<S.length;i++){if(!pass(i))continue;const v=av(st.week,i);if(v==null)continue;rows.push([i,v]);}
+  rows.sort((a,b)=>a[1]-b[1]);
+  const top=rows.slice(0,10);
+  let h='<div class="panel"><h3>&#9888;&#65039; Top 10 Worst Availability &mdash; '+fmtW(st.week)+' ('+(st.tech==="both"?"2G":st.tech.toUpperCase())+')</h3>'
+  +'<table><thead><tr><th>#</th><th>Site</th><th>Nama</th><th>Kelurahan</th><th>Kecamatan</th><th>Kabupaten</th><th>Avail</th><th>Trend 3 minggu</th><th>Transport</th><th>Prio</th><th>Owner</th><th>Genset</th></tr></thead><tbody>';
+  top.forEach(([i,v],n)=>{const s=S[i];
+    const w3=W.slice(-3).map(w=>pc(st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0])).join(" &rarr; ");
+    h+='<tr><td><b>'+(n+1)+'</b></td><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td>'
+    +'<td class="'+pcCls(v)+'"><b>'+pc(v)+'</b></td><td style="font-size:11px">'+w3+'</td><td>'+(s[F.TRAN]||"")+'</td><td>'+(s[F.PRIO]||"")+'</td><td>'+(s[F.OWN]||"")+'</td><td>'+(s[F.GEN]||"")+'</td></tr>';});
+  h+='</tbody></table><div class="note">Filter kabupaten/kategori/pencarian di atas ikut berlaku. Klik Site ID untuk riwayat lengkap.</div></div>';
+  el.innerHTML=h;}
+function rMonthly(el){
+  const mons=Object.keys(MON).sort();
+  const sel=window._selMon||mons[mons.length-1];window._selMon=sel;
+  let h='<div class="panel"><h3>Analisis Bulanan &mdash; site yang konsisten &lt;98%</h3>'
+  +'<label style="font-size:12px;color:#7f8c8d;font-weight:600">Bulan </label><select id="selMon" style="padding:5px 9px;border:1px solid #ccc;border-radius:6px">';
+  mons.forEach(m=>{h+='<option value="'+m+'"'+(m===sel?" selected":"")+'>'+m+' ('+MON[m].length+' minggu)</option>';});
+  h+='</select>';
+  const wks=MON[sel];
+  const bad=[];
+  for(let i=0;i<S.length;i++){if(st.kab!=="all"&&S[i][F.KAB]!==st.kab)continue;
+    let all=true,any=false,sum=0,n=0;
+    for(const w of wks){const v=st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0];
+      if(v==null){continue;}any=true;sum+=v;n++;if(v>=0.98)all=false;}
+    if(any&&all)bad.push([i,sum/n]);}
+  bad.sort((a,b)=>a[1]-b[1]);
+  h+='<div class="note">Site di bawah ini &lt;98% pada SEMUA minggu bulan '+sel+' yang ada datanya ('+wks.map(fmtW).join(", ")+') &mdash; total <b>'+bad.length+'</b> site '+(st.tech==="4g"?"4G":"2G")+'.</div>'
+  +'<table><thead><tr><th>Site</th><th>Nama</th><th>Kelurahan</th><th>Kecamatan</th><th>Kabupaten</th><th>Avg bulan ini</th>';
+  wks.forEach(w=>h+='<th>'+fmtW(w).split(" ")[1]+'</th>');
+  h+='<th>Transport</th><th>Owner</th></tr></thead><tbody>';
+  bad.slice(0,200).forEach(([i,m])=>{const s=S[i];
+    h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td><td class="pct2"><b>'+pc(m)+'</b></td>';
+    wks.forEach(w=>{const v=st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0];h+='<td class="'+pcCls(v)+'">'+pc(v)+'</td>';});
+    h+='<td>'+(s[F.TRAN]||"")+'</td><td>'+(s[F.OWN]||"")+'</td></tr>';});
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+  $("selMon").onchange=e=>{window._selMon=e.target.value;rMonthly(el);};}
+function rCompare(el){
+  const wa=window._wa||W[Math.max(0,W.length-2)], wb=window._wb||W[W.length-1];
+  window._wa=wa;window._wb=wb;
+  let selA='<select id="selA" style="padding:5px 9px;border:1px solid #ccc;border-radius:6px">',selB=selA.replace("selA","selB");
+  W.forEach(w=>{selA+='<option value="'+w+'"'+(w===wa?" selected":"")+'>'+fmtW(w)+'</option>';
+                selB+='<option value="'+w+'"'+(w===wb?" selected":"")+'>'+fmtW(w)+'</option>';});
+  selA+='</select>';selB+='</select>';
+  const g=w=>{let n=0,s=0,c=[0,0,0];for(let i=0;i<S.length;i++){const v=st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0];if(v==null)continue;n++;s+=v;c[cat(v)]++;}return{n,avg:s/n,c};};
+  const A=g(wa),B=g(wb);
+  const dif=[];
+  for(let i=0;i<S.length;i++){if(st.kab!=="all"&&S[i][F.KAB]!==st.kab)continue;
+    const x=st.tech==="4g"?P.data[wa][i][1]:P.data[wa][i][0];
+    const y=st.tech==="4g"?P.data[wb][i][1]:P.data[wb][i][0];
+    if(x==null||y==null)continue;dif.push([i,y-x,x,y]);}
+  dif.sort((a,b)=>a[1]-b[1]);
+  const worst=dif.slice(0,15), best=dif.slice(-15).reverse();
+  const dAvg=(B.avg-A.avg)*100;
+  let h='<div class="panel"><h3>Perbandingan Minggu ('+(st.tech==="4g"?"4G":"2G")+')</h3>'
+  +'<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><span>Dari '+selA+'</span><span>ke '+selB+'</span></div>'
+  +'<div class="cards">'
+  +'<div class="card"><div class="v '+(dAvg>=0?"up":"down")+'">'+(dAvg>=0?"+":"")+dAvg.toFixed(3)+' pp</div><div class="l">Perubahan rata-rata ('+(A.avg*100).toFixed(2)+'% &rarr; '+(B.avg*100).toFixed(2)+'%)</div></div>'
+  +'<div class="card grn"><div class="v">'+A.c[0]+' &rarr; '+B.c[0]+'</div><div class="l">Site 100%</div></div>'
+  +'<div class="card yel"><div class="v">'+A.c[1]+' &rarr; '+B.c[1]+'</div><div class="l">98-<100%</div></div>'
+  +'<div class="card red"><div class="v">'+A.c[2]+' &rarr; '+B.c[2]+'</div><div class="l">&lt;98%</div></div></div>'
+  +'<div class="grid2"><div><h3 style="color:var(--red)">&#9660; Penurunan terbesar</h3><table><thead><tr><th>Site</th><th>Kecamatan</th><th>'+fmtW(wa)+'</th><th>'+fmtW(wb)+'</th><th>&Delta;</th></tr></thead><tbody>';
+  worst.forEach(([i,d,x,y])=>{h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+S[i][F.SID]+'</td><td>'+S[i][F.KEC]+'</td><td>'+pc(x)+'</td><td>'+pc(y)+'</td><td class="down"><b>'+(d*100).toFixed(2)+' pp</b></td></tr>';});
+  h+='</tbody></table></div><div><h3 style="color:var(--grn)">&#9650; Perbaikan terbesar</h3><table><thead><tr><th>Site</th><th>Kecamatan</th><th>'+fmtW(wa)+'</th><th>'+fmtW(wb)+'</th><th>&Delta;</th></tr></thead><tbody>';
+  best.forEach(([i,d,x,y])=>{h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+S[i][F.SID]+'</td><td>'+S[i][F.KEC]+'</td><td>'+pc(x)+'</td><td>'+pc(y)+'</td><td class="up"><b>+'+(d*100).toFixed(2)+' pp</b></td></tr>';});
+  h+='</tbody></table></div></div><div class="note">pp = percentage point. Filter kabupaten di atas ikut berlaku.</div></div>';
+  el.innerHTML=h;
+  $("selA").onchange=e=>{window._wa=e.target.value;rCompare(el);};
+  $("selB").onchange=e=>{window._wb=e.target.value;rCompare(el);};}
+function bindSort(el,fn){el.querySelectorAll("th[data-k]").forEach(th=>th.onclick=()=>{
+  const k=th.dataset.k;if(sortK===k)sortD*=-1;else{sortK=k;sortD=1;}fn();});}
+init();
+</script>
+</body>
+</html>
