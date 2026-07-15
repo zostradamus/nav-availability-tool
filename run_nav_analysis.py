@@ -25,6 +25,7 @@ _DEFAULT_CFG = {
     "output_xlsx": "NAV_2G_CentralJava_Analysis.xlsx",
     "region": "CENTRAL JAVA",
     "output_dashboard": "dashboard.html",
+    "rca_dir": "../NAV CJ",
     "copy_to": []
 }
 _cfg_path = os.path.join(BASE, "config.json")
@@ -46,6 +47,7 @@ CMDB_DIR = _abs(cfg["cmdb_dir"])
 OUT_XLSX = _abs(cfg["output_xlsx"])
 REGION = cfg["region"]
 DASH_OUT = _abs(cfg.get("output_dashboard", "dashboard.html"))
+RCA_DIR = _abs(cfg.get("rca_dir", "../NAV CJ"))
 COPY_TO = [_abs(p) for p in cfg.get("copy_to", [])]
 CACHE = os.path.join(BASE, "cache")
 REF = os.path.join(BASE, "ref")
@@ -202,7 +204,62 @@ CMDB_COLS = {"Site ID*": "SITEID_CM", "Site Type Label": "Site_Type",
              "Site Priority Label": "Site_Priority", "Is VIP": "Is_VIP",
              "B2B Site": "B2B_Site", "Has Generator": "Has_Generator",
              "Battery Backup Category": "Battery_Backup", "Owner": "Owner",
-             "Site Address": "Site_Address"}
+             "Site Address": "Site_Address", "Rts Name": "Rts_Name"}
+
+def find_rca_file():
+    files = glob.glob(os.path.join(RCA_DIR, "*.xlsb")) + \
+            glob.glob(os.path.join(RCA_DIR, "*.xlsx"))
+    return max(files, key=os.path.getmtime) if files else None
+
+def process_rca(path):
+    import pandas as pd
+    eng = "pyxlsb" if path.lower().endswith(".xlsb") else None
+    xf = pd.ExcelFile(path, engine=eng)
+    sheet = next((n for n in xf.sheet_names if n.strip().upper() == "2G"),
+                 next((n for n in xf.sheet_names if "2G" in n.upper()), None))
+    if sheet is None:
+        print(f"WARNING: sheet 2G tidak ada di file RCA "
+              f"({os.path.basename(path)}); RCA dilewati")
+        return None
+    probe = pd.read_excel(xf, sheet_name=sheet, header=None, nrows=5)
+    hdr = 0
+    for i in range(len(probe)):
+        cells = [str(x).strip().upper() for x in probe.iloc[i].tolist()]
+        if "SITE ID" in cells or "SITEID" in cells:
+            hdr = i
+            break
+    df = pd.read_excel(xf, sheet_name=sheet, header=hdr)
+    df.columns = [str(c).strip() for c in df.columns]
+    low = {c.lower(): c for c in df.columns}
+    def col(*names):
+        for n in names:
+            if n in low:
+                return low[n]
+        return None
+    c_sid, c_date = col("site id", "siteid"), col("date")
+    c_sub, c_root = col("sub cause", "subcause"), col("root cause")
+    c_prog = col("progress")
+    if not c_sid or not c_sub:
+        print(f"WARNING: kolom SITE ID / Sub Cause tidak ditemukan di RCA; "
+              f"kolom ada: {list(df.columns)[:20]}")
+        return None
+    keep = [c for c in [c_sid, c_date, c_sub, c_root, c_prog] if c]
+    d = df[keep].copy()
+    d = d[d[c_sub].notna() & (d[c_sub].astype(str).str.strip() != "")]
+    d[c_sid] = d[c_sid].astype(str).str.strip().str.upper()
+    if c_date:
+        d[c_date] = pd.to_numeric(d[c_date], errors="coerce")
+        d = d.sort_values(c_date)
+    d = d.drop_duplicates(c_sid, keep="last")
+    out = pd.DataFrame({
+        "SITEID_R": d[c_sid].values,
+        "RCA_Sub_Cause": d[c_sub].astype(str).str.strip().values,
+        "RCA_Root_Cause": (d[c_root].astype(str).str.strip().values
+                           if c_root else [""] * len(d)),
+        "RCA_Progress": (d[c_prog].astype(str).str.strip().values
+                         if c_prog else [""] * len(d))})
+    out.to_parquet(os.path.join(CACHE, "rca.parquet"), index=False)
+    return out
 
 def find_cmdb_file():
     best = None
@@ -536,6 +593,15 @@ def build_dashboard():
     sids = sorted(meta)
     idx = {s: j for j, s in enumerate(sids)}
 
+    rca = {}
+    pr = os.path.join(CACHE, "rca.parquet")
+    if os.path.exists(pr):
+        rr = pd.read_parquet(pr)
+        for t in rr.itertuples(index=False):
+            txt = t.RCA_Sub_Cause
+            if getattr(t, "RCA_Progress", ""):
+                txt += f" [{t.RCA_Progress}]"
+            rca[t.SITEID_R] = txt
     cmdb = {}
     p = os.path.join(CACHE, "cmdb.parquet")
     if os.path.exists(p):
@@ -554,7 +620,9 @@ def build_dashboard():
                       _s(t.Kabupaten), _s(t[4]),
                       _s(c.Site_Type) if c else "", _s(c.Transport_Type) if c else "",
                       _s(c.Site_Priority) if c else "", _s(c.Owner) if c else "",
-                      _s(c.Has_Generator) if c else ""])
+                      _s(c.Has_Generator) if c else "",
+                      _s(getattr(c, "Rts_Name", None)) if c else "",
+                      rca.get(str(s).strip().upper(), "")])
 
     def _r(v, nd=6):
         return None if pd.isna(v) else round(float(v), nd)
@@ -612,6 +680,16 @@ def main():
                 save_json(STATE_F, state)
                 print(f"processed CMDB: {os.path.basename(cmdb_f)} "
                       f"({len(cm)} sites)")
+        rca_f = find_rca_file()
+        if rca_f:
+            sig = f"{os.path.basename(rca_f)}_{os.path.getmtime(rca_f)}"
+            if args.force or state.get("__rca__") != sig:
+                r = process_rca(rca_f)
+                if r is not None:
+                    state["__rca__"] = sig
+                    save_json(STATE_F, state)
+                    print(f"processed RCA: {os.path.basename(rca_f)} "
+                          f"({len(r)} site dengan sub cause)")
         week_files = find_week_files()
         todo = []
         for wk, path in week_files.items():
