@@ -238,18 +238,22 @@ def process_rca(path):
         return None
     c_sid, c_date = col("site id", "siteid"), col("date")
     c_sub, c_root = col("sub cause", "subcause"), col("root cause")
-    c_prog = col("progress")
+    c_prog, c_week = col("progress"), col("week")
     if not c_sid or not c_sub:
         print(f"WARNING: kolom SITE ID / Sub Cause tidak ditemukan di RCA; "
               f"kolom ada: {list(df.columns)[:20]}")
         return None
-    keep = [c for c in [c_sid, c_date, c_sub, c_root, c_prog] if c]
+    keep = [c for c in [c_sid, c_date, c_week, c_sub, c_root, c_prog] if c]
     d = df[keep].copy()
     d = d[d[c_sub].notna() & (d[c_sub].astype(str).str.strip() != "")]
     d[c_sid] = d[c_sid].astype(str).str.strip().str.upper()
-    if c_date:
-        d[c_date] = pd.to_numeric(d[c_date], errors="coerce")
-        d = d.sort_values(c_date)
+    sort_cols = []
+    for c in (c_week, c_date):  # entri terbaru = week lalu date terbesar
+        if c:
+            d[c] = pd.to_numeric(d[c], errors="coerce")
+            sort_cols.append(c)
+    if sort_cols:
+        d = d.sort_values(sort_cols, na_position="first")
     d = d.drop_duplicates(c_sid, keep="last")
     out = pd.DataFrame({
         "SITEID_R": d[c_sid].values,
@@ -257,7 +261,9 @@ def process_rca(path):
         "RCA_Root_Cause": (d[c_root].astype(str).str.strip().values
                            if c_root else [""] * len(d)),
         "RCA_Progress": (d[c_prog].astype(str).str.strip().values
-                         if c_prog else [""] * len(d))})
+                         if c_prog else [""] * len(d)),
+        "RCA_Week": (d[c_week].fillna(0).astype(int).astype(str).values
+                     if c_week else [""] * len(d))})
     out.to_parquet(os.path.join(CACHE, "rca.parquet"), index=False)
     return out
 
@@ -601,6 +607,9 @@ def build_dashboard():
             txt = t.RCA_Sub_Cause
             if getattr(t, "RCA_Progress", ""):
                 txt += f" [{t.RCA_Progress}]"
+            w = getattr(t, "RCA_Week", "")
+            if w and w != "0":
+                txt += f" (W{w})"
             rca[t.SITEID_R] = txt
     cmdb = {}
     p = os.path.join(CACHE, "cmdb.parquet")

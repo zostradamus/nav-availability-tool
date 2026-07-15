@@ -189,7 +189,7 @@ function kecDetail(ri){
   const r=window._kecRows[ri];
   let h='<button class="close" onclick="document.getElementById(\'modal\').style.display=\'none\'">&times;</button>'
   +'<h3>Kecamatan '+r.kec+' ('+r.kab+')</h3><div class="note">'+r.sites+' site | Avg '+pc(r.avg)+' | minggu '+fmtW(st.week)+'</div>'
-  +'<table class="inner"><thead><tr><th>Site</th><th>Nama</th><th>Kelurahan</th><th>2G</th><th>4G</th><th>Traffic</th><th>Kategori</th><th>RTS</th><th>RCA</th></tr></thead><tbody>';
+  +'<table class="inner"><thead><tr><th>Site</th><th>Nama</th><th>Kelurahan</th><th>2G</th><th>4G</th><th>Traffic</th><th>Kategori</th><th>RTS Name</th><th>RCA</th></tr></thead><tbody>';
   r.idx.sort((a,b)=>{const x=av(st.week,a),y=av(st.week,b);return (x==null)-(y==null)||x-y;}).forEach(i=>{
     const s=S[i];h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td>'
     +'<td class="'+pcCls(av2(st.week,i))+'">'+pc(av2(st.week,i))+'</td><td class="'+pcCls(av4(st.week,i))+'">'+pc(av4(st.week,i))+'</td>'
@@ -205,7 +205,7 @@ function siteDetail(i){
   +'<span><b>Site Type:</b> '+(s[F.TYPE]||"-")+'</span><span><b>Transport:</b> '+(s[F.TRAN]||"-")+'</span>'
   +'<span><b>Priority:</b> '+(s[F.PRIO]||"-")+'</span><span><b>Owner/Company:</b> '+(s[F.OWN]||"-")+'</span>'
   +'<span><b>Genset:</b> '+(s[F.GEN]||"-")+'</span>'
-  +'<span><b>RTS (penanggung jawab):</b> '+(s[F.RTS]||"-")+'</span></div>'
+  +'<span><b>RTS Name:</b> '+(s[F.RTS]||"-")+'</span></div>'
   +(s[F.RCA]?'<div style="background:#fdf2f2;border-left:4px solid var(--red);padding:8px 12px;border-radius:6px;margin:6px 0;font-size:12.5px"><b>RCA (Sub Cause):</b> '+s[F.RCA]+'</div>':'')
   +'<canvas id="cSite" height="120"></canvas>'
   +'<table class="inner"><thead><tr><th>Minggu</th><th>Avail 2G</th><th>Avail 4G</th><th>Traffic 2G</th><th>Traffic 4G</th><th>Kategori (2G)</th></tr></thead><tbody>';
@@ -254,7 +254,7 @@ function rTop(el){
   rows.sort((a,b)=>a[1]-b[1]);
   const top=rows.slice(0,10);
   let h='<div class="panel"><h3>&#9888;&#65039; Top 10 Worst Availability &mdash; '+fmtW(st.week)+' ('+(st.tech==="both"?"2G":st.tech.toUpperCase())+')</h3>'
-  +'<table><thead><tr><th>#</th><th>Site</th><th>Nama</th><th>Kelurahan</th><th>Kecamatan</th><th>Kabupaten</th><th>Avail</th><th>Trend 3 minggu</th><th>Transport</th><th>Prio</th><th>RTS</th><th>RCA (Sub Cause)</th></tr></thead><tbody>';
+  +'<table><thead><tr><th>#</th><th>Site</th><th>Nama</th><th>Kelurahan</th><th>Kecamatan</th><th>Kabupaten</th><th>Avail</th><th>Trend 3 minggu</th><th>Transport</th><th>Prio</th><th>RTS Name</th><th>RCA (Sub Cause)</th></tr></thead><tbody>';
   top.forEach(([i,v],n)=>{const s=S[i];
     const w3=W.slice(-3).map(w=>pc(st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0])).join(" &rarr; ");
     h+='<tr><td><b>'+(n+1)+'</b></td><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td>'
@@ -279,7 +279,7 @@ function rMonthly(el){
   h+='<div class="note">Site di bawah ini &lt;98% pada SEMUA minggu bulan '+sel+' yang ada datanya ('+wks.map(fmtW).join(", ")+') &mdash; total <b>'+bad.length+'</b> site '+(st.tech==="4g"?"4G":"2G")+'.</div>'
   +'<table><thead><tr><th>Site</th><th>Nama</th><th>Kelurahan</th><th>Kecamatan</th><th>Kabupaten</th><th>Avg bulan ini</th>';
   wks.forEach(w=>h+='<th>'+fmtW(w).split(" ")[1]+'</th>');
-  h+='<th>RTS</th><th>RCA (Sub Cause)</th></tr></thead><tbody>';
+  h+='<th>RTS Name</th><th>RCA (Sub Cause)</th></tr></thead><tbody>';
   bad.slice(0,200).forEach(([i,m])=>{const s=S[i];
     h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td><td class="pct2"><b>'+pc(m)+'</b></td>';
     wks.forEach(w=>{const v=st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0];h+='<td class="'+pcCls(v)+'">'+pc(v)+'</td>';});
