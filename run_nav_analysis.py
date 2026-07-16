@@ -326,10 +326,10 @@ def _copy_out(src_file, base):
             print(f"WARNING: gagal copy ke {dest}: {e}")
 
 def categorize(v):
-    if v >= 1.0 - 1e-9:
-        return "1. Availability 100%"
+    if v >= 0.99:
+        return "1. Availability 99% - 100%"
     if v >= 0.98:
-        return "2. Availability 98% - <100%"
+        return "2. Availability 98% - <99%"
     return "3. Availability <98%"
 
 def build_excel():
@@ -365,8 +365,8 @@ def build_excel():
     TXT = Font(name="Arial", size=10)
     thin = Side(style="thin", color="FFBBBBBB")
     BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
-    CAT_FILL = {"1. Availability 100%": "FFC6EFCE",
-                "2. Availability 98% - <100%": "FFFFEB9C",
+    CAT_FILL = {"1. Availability 99% - 100%": "FFC6EFCE",
+                "2. Availability 98% - <99%": "FFFFEB9C",
                 "3. Availability <98%": "FFFFC7CE"}
 
     wb = Workbook()
@@ -422,8 +422,8 @@ def build_excel():
             f"=AVERAGE({first_nav}{i}:{last_nav}{i})"
         a = f"{get_column_letter(avg_col)}{i}"
         ws.cell(row=i, column=cat_col).value = \
-            (f'=IF({a}>=1,"1. Availability 100%",'
-             f'IF({a}>=0.98,"2. Availability 98% - <100%",'
+            (f'=IF({a}>=0.99,"1. Availability 99% - 100%",'
+             f'IF({a}>=0.98,"2. Availability 98% - <99%",'
              f'"3. Availability <98%"))')
         ws.cell(row=i, column=cat_col).fill = \
             PatternFill("solid", start_color=CAT_FILL[df.iloc[i-2]["Category"]])
@@ -439,7 +439,7 @@ def build_excel():
                 ws.cell(row=i, column=j).fill = GREY
             elif v < 0.98:
                 ws.cell(row=i, column=j).fill = RED
-            elif v < 1.0 - 1e-9:
+            elif v < 0.99:
                 ws.cell(row=i, column=j).fill = YEL
 
     # ---- Summary
@@ -455,7 +455,7 @@ def build_excel():
         ws[c].fill = HDR_FILL; ws[c].font = HDR_FONT; ws[c].border = BORDER
     dname = "Data_" + latest
     catL = get_column_letter(cat_col)
-    cats = ["1. Availability 100%", "2. Availability 98% - <100%",
+    cats = ["1. Availability 99% - 100%", "2. Availability 98% - <99%",
             "3. Availability <98%"]
     for k, cat in enumerate(cats):
         r = 6 + k
@@ -481,8 +481,8 @@ def build_excel():
     ws["B13"] = "KETERANGAN WARNA & KODE"
     ws["B13"].font = Font(name="Arial", bold=True, size=11)
     _legend = [
-        ("FFC6EFCE", "Hijau", "Availability 100% (kategori 1)"),
-        ("FFFFEB9C", "Kuning", "98% - <100% (kategori 2 / nilai harian di sheet Data)"),
+        ("FFC6EFCE", "Hijau", "Availability 99% - 100% (kategori 1)"),
+        ("FFFFEB9C", "Kuning", "98% - <99% (kategori 2 / nilai harian di sheet Data)"),
         ("FFFFC7CE", "Merah", "<98% (kategori 3 / nilai harian di sheet Data)"),
         ("FFD9D9D9", "Abu-abu", "Sel NAV harian kosong = tidak ada data monitoring hari itu"),
     ]
@@ -513,7 +513,7 @@ def build_excel():
     ws.column_dimensions["D"].width = 12
 
     # ---- 3 sheet kategori
-    sheet_map = [("Avail_100", cats[0]), ("Avail_98_99", cats[1]),
+    sheet_map = [("Avail_99_100", cats[0]), ("Avail_98_99", cats[1]),
                  ("Below_98", cats[2])]
     cat_cols = ["SITEID", "Site_Name", "Kelurahan", "Kecamatan", "Kabupaten",
                 "MC Cluster"] + [c for c in ["Transport_Type", "Site_Priority",
@@ -555,7 +555,7 @@ def build_excel():
         cat = w["Avail_Avg"].apply(categorize)
         rows.append({"Week": wk, "Total_Site": len(w),
                      "No_NAV_Data": int((w0["Avail_Avg"].isna() & w0.get("In_2G_Sheet", True)).sum()),
-                     "Avail_100": int((cat == cats[0]).sum()),
+                     "Avail_99_100": int((cat == cats[0]).sum()),
                      "Avail_98_99": int((cat == cats[1]).sum()),
                      "Below_98": int((cat == cats[2]).sum()),
                      "Avg_Avail_%": round(w["Avail_Avg"].mean() * 100, 2)})

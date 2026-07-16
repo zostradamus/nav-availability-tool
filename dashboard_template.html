@@ -70,7 +70,7 @@ canvas{max-height:300px;}
 <div class="filters">
   <label>Minggu</label><select id="fWeek"></select>
   <label>Teknologi</label><select id="fTech"><option value="2g">2G</option><option value="4g">4G</option><option value="both">2G + 4G (traffic)</option></select>
-  <label>Kategori</label><select id="fCat"><option value="all">Semua</option><option value="0">100%</option><option value="1">98% - &lt;100%</option><option value="2">&lt;98%</option><option value="x">Tanpa data</option></select>
+  <label>Kategori</label><select id="fCat"><option value="all">Semua</option><option value="0">99% - 100%</option><option value="1">98% - &lt;99%</option><option value="2">&lt;98%</option><option value="x">Tanpa data</option></select>
   <label>Kabupaten</label><select id="fKab"><option value="all">Semua</option></select>
   <label>Cari</label><input id="fQ" placeholder="site / kecamatan / kelurahan...">
 </div>
@@ -78,7 +78,7 @@ canvas{max-height:300px;}
 <div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
 <script>
 const P = __PAYLOAD__;
-const CATL=["100%","98% - <100%","<98%"], W=P.weeks, S=P.sites;
+const CATL=["99% - 100%","98% - <99%","<98%"], W=P.weeks, S=P.sites;
 const F={SID:0,NAME:1,KEL:2,KEC:3,KAB:4,MC:5,TYPE:6,TRAN:7,PRIO:8,OWN:9,GEN:10,RTS:11,RCA:12};
 const MON={};W.forEach((w,i)=>{const d=P.week_dates[i];const m=d.slice(0,4)+"-"+d.slice(4,6);(MON[m]=MON[m]||[]).push(w);});
 let tab="overview", sortK=null, sortD=1, page=0; const PSZ=100;
@@ -87,7 +87,7 @@ const $=id=>document.getElementById(id);
 function av(w,i){const r=P.data[w][i];return st.tech==="4g"?r[1]:r[0];}
 function av2(w,i){return P.data[w][i][0];} function av4(w,i){return P.data[w][i][1];}
 function tr(w,i){const r=P.data[w][i];if(st.tech==="2g")return r[2];if(st.tech==="4g")return r[3];return (r[2]||0)+(r[3]||0);}
-function cat(v){if(v==null)return "x";return v>=0.999999995?0:(v>=0.98?1:2);}
+function cat(v){if(v==null)return "x";return v>=0.99?0:(v>=0.98?1:2);}
 function pc(v){return v==null?"&mdash;":(v*100).toFixed(2)+"%";}
 function pcCls(v){const c=cat(v);return c==="x"?"":"pct"+c;}
 function badge(v){const c=cat(v);return c==="x"?'<span class="b bx">no data</span>':'<span class="b b'+c+'">'+CATL[c]+'</span>';}
@@ -125,8 +125,8 @@ function cardsHtml(k){
   return '<div class="cards">'
   +'<div class="card"><div class="v">'+k.total+'</div><div class="l">Site aktif minggu ini ('+(st.tech==="both"?"2G/4G":st.tech.toUpperCase())+')</div></div>'
   +'<div class="card"><div class="v">'+(k.avg!=null?(k.avg*100).toFixed(2)+"%":"&mdash;")+'</div><div class="l">Rata-rata availability</div></div>'
-  +'<div class="card grn"><div class="v">'+k.c[0]+'</div><div class="l">Availability 100%</div></div>'
-  +'<div class="card yel"><div class="v">'+k.c[1]+'</div><div class="l">98% - <100%</div></div>'
+  +'<div class="card grn"><div class="v">'+k.c[0]+'</div><div class="l">Availability 99% - 100%</div></div>'
+  +'<div class="card yel"><div class="v">'+k.c[1]+'</div><div class="l">98% - <99%</div></div>'
   +'<div class="card red"><div class="v">'+k.c[2]+'</div><div class="l">Di bawah 98%</div></div>'
   +'<div class="card gry"><div class="v">'+k.nd+'</div><div class="l">Tanpa data NAV</div></div>'
   +'<div class="card"><div class="v">'+gb(k.traf)+'</div><div class="l">Total traffic mingguan</div></div></div>';}
@@ -160,8 +160,8 @@ function rOverview(el){
     {label:"4G",data:t4,borderColor:"#2980b9",tension:.25}]},
     options:{scales:{y:{title:{display:true,text:"%"}}}}});
   new Chart($("cCat"),{type:"bar",data:{labels:wl,datasets:[
-    {label:"100%",data:cc[0],backgroundColor:"#27ae60"},
-    {label:"98-<100%",data:cc[1],backgroundColor:"#f39c12"},
+    {label:"99-100%",data:cc[0],backgroundColor:"#27ae60"},
+    {label:"98-<99%",data:cc[1],backgroundColor:"#f39c12"},
     {label:"<98%",data:cc[2],backgroundColor:"#c0392b"}]},
     options:{scales:{x:{stacked:true},y:{stacked:true}}}});
   new Chart($("cTraf"),{type:"bar",data:{labels:wl,datasets:[
@@ -180,7 +180,7 @@ function rKec(el){
   const key=sortK||"avg";rows.sort((a,b)=>((a[key]==null)-(b[key]==null))||((a[key]>b[key]?1:-1)*sortD));
   let h='<div class="panel"><h3>Rekap per Kecamatan &mdash; '+fmtW(st.week)+' ('+(st.tech==="both"?"2G":st.tech.toUpperCase())+')</h3>'
   +'<table><thead><tr><th data-k="kec">Kecamatan</th><th data-k="kab">Kabupaten</th><th data-k="sites">Site</th><th data-k="avg">Avg Avail</th>'
-  +'<th data-k="c100">100%</th><th data-k="c98">98-<100%</th><th data-k="cbad">&lt;98%</th><th data-k="nd">No data</th><th data-k="traf">Traffic</th></tr></thead><tbody>';
+  +'<th data-k="c100">99-100%</th><th data-k="c98">98-<99%</th><th data-k="cbad">&lt;98%</th><th data-k="nd">No data</th><th data-k="traf">Traffic</th></tr></thead><tbody>';
   rows.forEach((r,ri)=>{h+='<tr><td class="clk" onclick="kecDetail('+ri+')">'+r.kec+'</td><td>'+r.kab+'</td><td>'+r.sites+'</td>'
     +'<td class="'+pcCls(r.avg)+'">'+pc(r.avg)+'</td><td>'+r.c100+'</td><td>'+r.c98+'</td><td>'+(r.cbad?'<b style="color:var(--red)">'+r.cbad+'</b>':0)+'</td><td>'+r.nd+'</td><td>'+gb(r.traf)+'</td></tr>';});
   h+='</tbody></table><div class="note">Klik nama kecamatan untuk melihat detail site-nya. Klik header untuk sort.</div></div>';
@@ -308,7 +308,7 @@ function rCompare(el){
   +'<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><span>Dari '+selA+'</span><span>ke '+selB+'</span></div>'
   +'<div class="cards">'
   +'<div class="card"><div class="v '+(dAvg>=0?"up":"down")+'">'+(dAvg>=0?"+":"")+dAvg.toFixed(3)+' pp</div><div class="l">Perubahan rata-rata ('+(A.avg*100).toFixed(2)+'% &rarr; '+(B.avg*100).toFixed(2)+'%)</div></div>'
-  +'<div class="card grn"><div class="v">'+A.c[0]+' &rarr; '+B.c[0]+'</div><div class="l">Site 100%</div></div>'
+  +'<div class="card grn"><div class="v">'+A.c[0]+' &rarr; '+B.c[0]+'</div><div class="l">Site 99-100%</div></div>'
   +'<div class="card yel"><div class="v">'+A.c[1]+' &rarr; '+B.c[1]+'</div><div class="l">98-<100%</div></div>'
   +'<div class="card red"><div class="v">'+A.c[2]+' &rarr; '+B.c[2]+'</div><div class="l">&lt;98%</div></div></div>'
   +'<div class="grid2"><div><h3 style="color:var(--red)">&#9660; Penurunan terbesar</h3><table><thead><tr><th>Site</th><th>Kecamatan</th><th>'+fmtW(wa)+'</th><th>'+fmtW(wb)+'</th><th>&Delta;</th></tr></thead><tbody>';
