@@ -31,8 +31,8 @@ th{background:#fafafa;text-align:left;padding:7px 9px;border-bottom:2px solid #e
 td{padding:6px 9px;border-bottom:1px solid #f0f0f0;}
 tr:hover td{background:#fcf8f5;}
 .b{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;}
-.b0{background:var(--grn);} .b1{background:var(--yel);} .b2{background:var(--red);} .bx{background:#999;}
-.pct0{color:var(--grn);font-weight:600;} .pct1{color:var(--yel);font-weight:600;} .pct2{color:var(--red);font-weight:700;}
+.b0{background:var(--grn);} .b1{background:var(--red);} .b2{background:var(--red);} .bx{background:#999;}
+.pct0{color:var(--grn);font-weight:600;} .pct1{color:var(--red);font-weight:700;} .pct2{color:var(--red);font-weight:700;}
 .clk{cursor:pointer;color:#b30000;font-weight:600;text-decoration:underline dotted;}
 .exp td{background:#fdf6f6;}
 .inner{margin:6px 0;border:1px solid #eee;}
@@ -62,6 +62,7 @@ canvas{max-height:300px;}
 <div class="tabs">
   <button class="tab active" data-t="overview">Ringkasan</button>
   <button class="tab" data-t="kecamatan">Per Kecamatan</button>
+  <button class="tab" data-t="rts">Per RTS</button>
   <button class="tab" data-t="sites">Site Explorer</button>
   <button class="tab" data-t="top">Top 10 Worst</button>
   <button class="tab" data-t="monthly">Analisis Bulanan</button>
@@ -70,15 +71,15 @@ canvas{max-height:300px;}
 <div class="filters">
   <label>Minggu</label><select id="fWeek"></select>
   <label>Teknologi</label><select id="fTech"><option value="2g">2G</option><option value="4g">4G</option><option value="both">2G + 4G (traffic)</option></select>
-  <label>Kategori</label><select id="fCat"><option value="all">Semua</option><option value="0">99% - 100%</option><option value="1">98% - &lt;99%</option><option value="2">&lt;98%</option><option value="x">Tanpa data</option></select>
+  <label>Kategori</label><select id="fCat"><option value="all">Semua</option><option value="0">99% - 100%</option><option value="1">&lt;99%</option><option value="x">Tanpa data</option></select>
   <label>Kabupaten</label><select id="fKab"><option value="all">Semua</option></select>
-  <label>Cari</label><input id="fQ" placeholder="site / kecamatan / kelurahan...">
+  <label>Cari</label><input id="fQ" placeholder="site / kecamatan / kelurahan / RTS...">
 </div>
 <main id="content"></main>
 <div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
 <script>
 const P = __PAYLOAD__;
-const CATL=["99% - 100%","98% - <99%","<98%"], W=P.weeks, S=P.sites;
+const CATL=["99% - 100%","<99%"], W=P.weeks, S=P.sites;
 const F={SID:0,NAME:1,KEL:2,KEC:3,KAB:4,MC:5,TYPE:6,TRAN:7,PRIO:8,OWN:9,GEN:10,RTS:11,RCA:12};
 const MON={};W.forEach((w,i)=>{const d=P.week_dates[i];const m=d.slice(0,4)+"-"+d.slice(4,6);(MON[m]=MON[m]||[]).push(w);});
 let tab="overview", sortK=null, sortD=1, page=0; const PSZ=100;
@@ -87,7 +88,7 @@ const $=id=>document.getElementById(id);
 function av(w,i){const r=P.data[w][i];return st.tech==="4g"?r[1]:r[0];}
 function av2(w,i){return P.data[w][i][0];} function av4(w,i){return P.data[w][i][1];}
 function tr(w,i){const r=P.data[w][i];if(st.tech==="2g")return r[2];if(st.tech==="4g")return r[3];return (r[2]||0)+(r[3]||0);}
-function cat(v){if(v==null)return "x";return v>=0.99?0:(v>=0.98?1:2);}
+function cat(v){if(v==null)return "x";return v>=0.99?0:1;}
 function pc(v){return v==null?"&mdash;":(v*100).toFixed(2)+"%";}
 function pcCls(v){const c=cat(v);return c==="x"?"":"pct"+c;}
 function badge(v){const c=cat(v);return c==="x"?'<span class="b bx">no data</span>':'<span class="b b'+c+'">'+CATL[c]+'</span>';}
@@ -98,7 +99,7 @@ function pass(i){
   if(st.cat!=="all"){const c=cat(v);if(String(c)!==st.cat)return false;}
   if(st.kab!=="all"&&S[i][F.KAB]!==st.kab)return false;
   if(st.q){const q=st.q.toLowerCase();const s=S[i];
-    if(!(s[F.SID]+" "+s[F.NAME]+" "+s[F.KEC]+" "+s[F.KEL]).toLowerCase().includes(q))return false;}
+    if(!(s[F.SID]+" "+s[F.NAME]+" "+s[F.KEC]+" "+s[F.KEL]+" "+(s[F.RTS]||"")).toLowerCase().includes(q))return false;}
   return true;}
 function activeIdx(){const a=[];for(let i=0;i<S.length;i++){if(P.data[st.week][i][0]==null&&P.data[st.week][i][1]==null)continue;a.push(i);}return a;}
 function init(){
@@ -126,14 +127,14 @@ function cardsHtml(k){
   +'<div class="card"><div class="v">'+k.total+'</div><div class="l">Site aktif minggu ini ('+(st.tech==="both"?"2G/4G":st.tech.toUpperCase())+')</div></div>'
   +'<div class="card"><div class="v">'+(k.avg!=null?(k.avg*100).toFixed(2)+"%":"&mdash;")+'</div><div class="l">Rata-rata availability</div></div>'
   +'<div class="card grn"><div class="v">'+k.c[0]+'</div><div class="l">Availability 99% - 100%</div></div>'
-  +'<div class="card yel"><div class="v">'+k.c[1]+'</div><div class="l">98% - <99%</div></div>'
-  +'<div class="card red"><div class="v">'+k.c[2]+'</div><div class="l">Di bawah 98%</div></div>'
+  +'<div class="card red"><div class="v">'+k.c[1]+'</div><div class="l">Di bawah 99%</div></div>'
   +'<div class="card gry"><div class="v">'+k.nd+'</div><div class="l">Tanpa data NAV</div></div>'
   +'<div class="card"><div class="v">'+gb(k.traf)+'</div><div class="l">Total traffic mingguan</div></div></div>';}
 function render(){
   const el=$("content");
   if(tab==="overview")rOverview(el);
   else if(tab==="kecamatan")rKec(el);
+  else if(tab==="rts")rRts(el);
   else if(tab==="sites")rSites(el);
   else if(tab==="top")rTop(el);
   else if(tab==="monthly")rMonthly(el);
@@ -161,8 +162,7 @@ function rOverview(el){
     options:{scales:{y:{title:{display:true,text:"%"}}}}});
   new Chart($("cCat"),{type:"bar",data:{labels:wl,datasets:[
     {label:"99-100%",data:cc[0],backgroundColor:"#27ae60"},
-    {label:"98-<99%",data:cc[1],backgroundColor:"#f39c12"},
-    {label:"<98%",data:cc[2],backgroundColor:"#c0392b"}]},
+    {label:"<99%",data:cc[1],backgroundColor:"#c0392b"}]},
     options:{scales:{x:{stacked:true},y:{stacked:true}}}});
   new Chart($("cTraf"),{type:"bar",data:{labels:wl,datasets:[
     {label:"2G (GB)",data:tt2,backgroundColor:"#b30000"},
@@ -176,15 +176,43 @@ function rKec(el){
     o.idx.push(i);o.traf+=tr(st.week,i)||0;
     if(v==null){o.nd++;}else{o.n++;o.s+=v;o.c[cat(v)]++;}}
   let rows=Object.entries(m).map(([kk,o])=>{const[kec,kab]=kk.split("||");
-    return {kec,kab,sites:o.idx.length,avg:o.n?o.s/o.n:null,c100:o.c[0],c98:o.c[1],cbad:o.c[2],nd:o.nd,traf:o.traf,idx:o.idx};});
+    return {kec,kab,sites:o.idx.length,avg:o.n?o.s/o.n:null,c100:o.c[0],cbad:o.c[1],nd:o.nd,traf:o.traf,idx:o.idx};});
   const key=sortK||"avg";rows.sort((a,b)=>((a[key]==null)-(b[key]==null))||((a[key]>b[key]?1:-1)*sortD));
   let h='<div class="panel"><h3>Rekap per Kecamatan &mdash; '+fmtW(st.week)+' ('+(st.tech==="both"?"2G":st.tech.toUpperCase())+')</h3>'
   +'<table><thead><tr><th data-k="kec">Kecamatan</th><th data-k="kab">Kabupaten</th><th data-k="sites">Site</th><th data-k="avg">Avg Avail</th>'
-  +'<th data-k="c100">99-100%</th><th data-k="c98">98-<99%</th><th data-k="cbad">&lt;98%</th><th data-k="nd">No data</th><th data-k="traf">Traffic</th></tr></thead><tbody>';
+  +'<th data-k="c100">99-100%</th><th data-k="cbad">&lt;99%</th><th data-k="nd">No data</th><th data-k="traf">Traffic</th></tr></thead><tbody>';
   rows.forEach((r,ri)=>{h+='<tr><td class="clk" onclick="kecDetail('+ri+')">'+r.kec+'</td><td>'+r.kab+'</td><td>'+r.sites+'</td>'
-    +'<td class="'+pcCls(r.avg)+'">'+pc(r.avg)+'</td><td>'+r.c100+'</td><td>'+r.c98+'</td><td>'+(r.cbad?'<b style="color:var(--red)">'+r.cbad+'</b>':0)+'</td><td>'+r.nd+'</td><td>'+gb(r.traf)+'</td></tr>';});
+    +'<td class="'+pcCls(r.avg)+'">'+pc(r.avg)+'</td><td>'+r.c100+'</td><td>'+(r.cbad?'<b style="color:var(--red)">'+r.cbad+'</b>':0)+'</td><td>'+r.nd+'</td><td>'+gb(r.traf)+'</td></tr>';});
   h+='</tbody></table><div class="note">Klik nama kecamatan untuk melihat detail site-nya. Klik header untuk sort.</div></div>';
   el.innerHTML=h;window._kecRows=rows;bindSort(el,()=>rKec(el));}
+function rRts(el){
+  const m={};
+  for(let i=0;i<S.length;i++){if(!pass(i))continue;const v=av(st.week,i);
+    const kk=S[i][F.RTS]||"(tanpa RTS)";
+    const o=m[kk]=m[kk]||{n:0,s:0,c:[0,0],nd:0,traf:0,idx:[]};
+    o.idx.push(i);o.traf+=tr(st.week,i)||0;
+    if(v==null){o.nd++;}else{o.n++;o.s+=v;o.c[cat(v)]++;}}
+  let rows=Object.entries(m).map(([rts,o])=>({rts,sites:o.idx.length,avg:o.n?o.s/o.n:null,c100:o.c[0],cbad:o.c[1],nd:o.nd,traf:o.traf,idx:o.idx}));
+  const key=sortK||"cbad";const dir=sortK?sortD:-1;
+  rows.sort((a,b)=>((a[key]==null)-(b[key]==null))||((a[key]>b[key]?1:a[key]<b[key]?-1:0)*dir));
+  let h='<div class="panel"><h3>Rekap per RTS Name &mdash; '+fmtW(st.week)+' ('+(st.tech==="both"?"2G":st.tech.toUpperCase())+')</h3>'
+  +'<table><thead><tr><th data-k="rts">RTS Name</th><th data-k="sites">Site</th><th data-k="avg">Avg Avail</th>'
+  +'<th data-k="c100">99-100%</th><th data-k="cbad">&lt;99%</th><th data-k="nd">No data</th><th data-k="traf">Traffic</th></tr></thead><tbody>';
+  rows.forEach((r,ri)=>{h+='<tr><td class="clk" onclick="rtsDetail('+ri+')">'+r.rts+'</td><td>'+r.sites+'</td>'
+    +'<td class="'+pcCls(r.avg)+'">'+pc(r.avg)+'</td><td>'+r.c100+'</td><td>'+(r.cbad?'<b style="color:var(--red)">'+r.cbad+'</b>':0)+'</td><td>'+r.nd+'</td><td>'+gb(r.traf)+'</td></tr>';});
+  h+='</tbody></table><div class="note">Klik nama RTS untuk melihat semua site tanggung jawabnya (default urut dari yang paling banyak site &lt;99%). Kotak Cari di atas juga bisa dipakai untuk nama RTS.</div></div>';
+  el.innerHTML=h;window._rtsRows=rows;bindSort(el,()=>rRts(el));}
+function rtsDetail(ri){
+  const r=window._rtsRows[ri];
+  let h='<button class="close" onclick="document.getElementById(\'modal\').style.display=\'none\'">&times;</button>'
+  +'<h3>RTS: '+r.rts+'</h3><div class="note">'+r.sites+' site | Avg '+pc(r.avg)+' | '+r.cbad+' site &lt;99% | minggu '+fmtW(st.week)+'</div>'
+  +'<table class="inner"><thead><tr><th>Site</th><th>Nama</th><th>Kecamatan</th><th>Kabupaten</th><th>2G</th><th>4G</th><th>Kategori</th><th>RCA</th></tr></thead><tbody>';
+  r.idx.sort((a,b)=>{const x=av(st.week,a),y=av(st.week,b);return (x==null)-(y==null)||x-y;}).forEach(i=>{
+    const s=S[i];h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td>'
+    +'<td class="'+pcCls(av2(st.week,i))+'">'+pc(av2(st.week,i))+'</td><td class="'+pcCls(av4(st.week,i))+'">'+pc(av4(st.week,i))+'</td>'
+    +'<td>'+badge(av(st.week,i))+'</td><td style="font-size:11px">'+(s[F.RCA]||"&mdash;")+'</td></tr>';});
+  h+='</tbody></table>';
+  $("modalBox").innerHTML=h;$("modal").style.display="flex";}
 function kecDetail(ri){
   const r=window._kecRows[ri];
   let h='<button class="close" onclick="document.getElementById(\'modal\').style.display=\'none\'">&times;</button>'
@@ -264,7 +292,7 @@ function rTop(el){
 function rMonthly(el){
   const mons=Object.keys(MON).sort();
   const sel=window._selMon||mons[mons.length-1];window._selMon=sel;
-  let h='<div class="panel"><h3>Analisis Bulanan &mdash; site yang konsisten &lt;98%</h3>'
+  let h='<div class="panel"><h3>Analisis Bulanan &mdash; site yang konsisten &lt;99%</h3>'
   +'<label style="font-size:12px;color:#7f8c8d;font-weight:600">Bulan </label><select id="selMon" style="padding:5px 9px;border:1px solid #ccc;border-radius:6px">';
   mons.forEach(m=>{h+='<option value="'+m+'"'+(m===sel?" selected":"")+'>'+m+' ('+MON[m].length+' minggu)</option>';});
   h+='</select>';
@@ -273,10 +301,10 @@ function rMonthly(el){
   for(let i=0;i<S.length;i++){if(st.kab!=="all"&&S[i][F.KAB]!==st.kab)continue;
     let all=true,any=false,sum=0,n=0;
     for(const w of wks){const v=st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0];
-      if(v==null){continue;}any=true;sum+=v;n++;if(v>=0.98)all=false;}
+      if(v==null){continue;}any=true;sum+=v;n++;if(v>=0.99)all=false;}
     if(any&&all)bad.push([i,sum/n]);}
   bad.sort((a,b)=>a[1]-b[1]);
-  h+='<div class="note">Site di bawah ini &lt;98% pada SEMUA minggu bulan '+sel+' yang ada datanya ('+wks.map(fmtW).join(", ")+') &mdash; total <b>'+bad.length+'</b> site '+(st.tech==="4g"?"4G":"2G")+'.</div>'
+  h+='<div class="note">Site di bawah ini &lt;99% pada SEMUA minggu bulan '+sel+' yang ada datanya ('+wks.map(fmtW).join(", ")+') &mdash; total <b>'+bad.length+'</b> site '+(st.tech==="4g"?"4G":"2G")+'.</div>'
   +'<table><thead><tr><th>Site</th><th>Nama</th><th>Kelurahan</th><th>Kecamatan</th><th>Kabupaten</th><th>Avg bulan ini</th>';
   wks.forEach(w=>h+='<th>'+fmtW(w).split(" ")[1]+'</th>');
   h+='<th>RTS Name</th><th>RCA (Sub Cause)</th></tr></thead><tbody>';
@@ -309,8 +337,7 @@ function rCompare(el){
   +'<div class="cards">'
   +'<div class="card"><div class="v '+(dAvg>=0?"up":"down")+'">'+(dAvg>=0?"+":"")+dAvg.toFixed(3)+' pp</div><div class="l">Perubahan rata-rata ('+(A.avg*100).toFixed(2)+'% &rarr; '+(B.avg*100).toFixed(2)+'%)</div></div>'
   +'<div class="card grn"><div class="v">'+A.c[0]+' &rarr; '+B.c[0]+'</div><div class="l">Site 99-100%</div></div>'
-  +'<div class="card yel"><div class="v">'+A.c[1]+' &rarr; '+B.c[1]+'</div><div class="l">98-<100%</div></div>'
-  +'<div class="card red"><div class="v">'+A.c[2]+' &rarr; '+B.c[2]+'</div><div class="l">&lt;98%</div></div></div>'
+  +'<div class="card red"><div class="v">'+A.c[1]+' &rarr; '+B.c[1]+'</div><div class="l">&lt;99%</div></div></div>'
   +'<div class="grid2"><div><h3 style="color:var(--red)">&#9660; Penurunan terbesar</h3><table><thead><tr><th>Site</th><th>Kecamatan</th><th>'+fmtW(wa)+'</th><th>'+fmtW(wb)+'</th><th>&Delta;</th></tr></thead><tbody>';
   worst.forEach(([i,d,x,y])=>{h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+S[i][F.SID]+'</td><td>'+S[i][F.KEC]+'</td><td>'+pc(x)+'</td><td>'+pc(y)+'</td><td class="down"><b>'+(d*100).toFixed(2)+' pp</b></td></tr>';});
   h+='</tbody></table></div><div><h3 style="color:var(--grn)">&#9650; Perbaikan terbesar</h3><table><thead><tr><th>Site</th><th>Kecamatan</th><th>'+fmtW(wa)+'</th><th>'+fmtW(wb)+'</th><th>&Delta;</th></tr></thead><tbody>';

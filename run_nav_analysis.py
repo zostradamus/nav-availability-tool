@@ -328,9 +328,7 @@ def _copy_out(src_file, base):
 def categorize(v):
     if v >= 0.99:
         return "1. Availability 99% - 100%"
-    if v >= 0.98:
-        return "2. Availability 98% - <99%"
-    return "3. Availability <98%"
+    return "2. Availability <99%"
 
 def build_excel():
     import pandas as pd
@@ -366,8 +364,7 @@ def build_excel():
     thin = Side(style="thin", color="FFBBBBBB")
     BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
     CAT_FILL = {"1. Availability 99% - 100%": "FFC6EFCE",
-                "2. Availability 98% - <99%": "FFFFEB9C",
-                "3. Availability <98%": "FFFFC7CE"}
+                "2. Availability <99%": "FFFFC7CE"}
 
     wb = Workbook()
 
@@ -423,8 +420,7 @@ def build_excel():
         a = f"{get_column_letter(avg_col)}{i}"
         ws.cell(row=i, column=cat_col).value = \
             (f'=IF({a}>=0.99,"1. Availability 99% - 100%",'
-             f'IF({a}>=0.98,"2. Availability 98% - <99%",'
-             f'"3. Availability <98%"))')
+             f'"2. Availability <99%")')
         ws.cell(row=i, column=cat_col).fill = \
             PatternFill("solid", start_color=CAT_FILL[df.iloc[i-2]["Category"]])
     GREY = PatternFill("solid", start_color="FFD9D9D9")
@@ -437,10 +433,8 @@ def build_excel():
             v = rowv[c]
             if pd.isna(v):
                 ws.cell(row=i, column=j).fill = GREY
-            elif v < 0.98:
-                ws.cell(row=i, column=j).fill = RED
             elif v < 0.99:
-                ws.cell(row=i, column=j).fill = YEL
+                ws.cell(row=i, column=j).fill = RED
 
     # ---- Summary
     ws = wb.create_sheet("Summary")
@@ -455,24 +449,23 @@ def build_excel():
         ws[c].fill = HDR_FILL; ws[c].font = HDR_FONT; ws[c].border = BORDER
     dname = "Data_" + latest
     catL = get_column_letter(cat_col)
-    cats = ["1. Availability 99% - 100%", "2. Availability 98% - <99%",
-            "3. Availability <98%"]
+    cats = ["1. Availability 99% - 100%", "2. Availability <99%"]
     for k, cat in enumerate(cats):
         r = 6 + k
         ws[f"B{r}"] = cat
         ws[f"C{r}"] = f"=COUNTIF('{dname}'!{catL}:{catL},B{r})"
-        ws[f"D{r}"] = f"=C{r}/C$9"
+        ws[f"D{r}"] = f"=C{r}/C$8"
         ws[f"D{r}"].number_format = "0.0%"
         for col in "BCD":
             ws[f"{col}{r}"].border = BORDER
             ws[f"{col}{r}"].font = TXT
         ws[f"B{r}"].fill = PatternFill("solid", start_color=CAT_FILL[cat])
-    ws["B9"] = "Total site"
-    ws["C9"] = "=SUM(C6:C8)"
-    ws["B9"].font = Font(name="Arial", bold=True)
-    ws["C9"].font = Font(name="Arial", bold=True)
+    ws["B8"] = "Total site"
+    ws["C8"] = "=SUM(C6:C7)"
+    ws["B8"].font = Font(name="Arial", bold=True)
+    ws["C8"].font = Font(name="Arial", bold=True)
     for col in "BCD":
-        ws[f"{col}9"].border = BORDER
+        ws[f"{col}8"].border = BORDER
     ws["B11"] = "Rata-rata availability regional"
     ws["C11"] = f"=AVERAGE('{dname}'!{get_column_letter(avg_col)}2:" \
                 f"{get_column_letter(avg_col)}{len(ddf)+1})"
@@ -482,8 +475,7 @@ def build_excel():
     ws["B13"].font = Font(name="Arial", bold=True, size=11)
     _legend = [
         ("FFC6EFCE", "Hijau", "Availability 99% - 100% (kategori 1)"),
-        ("FFFFEB9C", "Kuning", "98% - <99% (kategori 2 / nilai harian di sheet Data)"),
-        ("FFFFC7CE", "Merah", "<98% (kategori 3 / nilai harian di sheet Data)"),
+        ("FFFFC7CE", "Merah", "<99% (kategori 2 / nilai harian di sheet Data)"),
         ("FFD9D9D9", "Abu-abu", "Sel NAV harian kosong = tidak ada data monitoring hari itu"),
     ]
     for k, (clr, nm, desc) in enumerate(_legend):
@@ -513,8 +505,7 @@ def build_excel():
     ws.column_dimensions["D"].width = 12
 
     # ---- 3 sheet kategori
-    sheet_map = [("Avail_99_100", cats[0]), ("Avail_98_99", cats[1]),
-                 ("Below_98", cats[2])]
+    sheet_map = [("Avail_99_100", cats[0]), ("Below_99", cats[1])]
     cat_cols = ["SITEID", "Site_Name", "Kelurahan", "Kecamatan", "Kabupaten",
                 "MC Cluster"] + [c for c in ["Transport_Type", "Site_Priority",
                 "Has_Generator", "Owner"] if c in df.columns] + ["Avail_%"]
@@ -556,8 +547,7 @@ def build_excel():
         rows.append({"Week": wk, "Total_Site": len(w),
                      "No_NAV_Data": int((w0["Avail_Avg"].isna() & w0.get("In_2G_Sheet", True)).sum()),
                      "Avail_99_100": int((cat == cats[0]).sum()),
-                     "Avail_98_99": int((cat == cats[1]).sum()),
-                     "Below_98": int((cat == cats[2]).sum()),
+                     "Below_99": int((cat == cats[1]).sum()),
                      "Avg_Avail_%": round(w["Avail_Avg"].mean() * 100, 2)})
     write_df(ws, pd.DataFrame(rows))
 
