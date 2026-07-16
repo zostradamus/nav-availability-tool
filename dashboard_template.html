@@ -93,6 +93,7 @@ function cat(v){if(v==null)return "x";return v>=0.99?0:1;}
 function pc(v){return v==null?"&mdash;":(v*100).toFixed(2)+"%";}
 function pcCls(v){const c=cat(v);return c==="x"?"":"pct"+c;}
 function badge(v){const c=cat(v);return c==="x"?'<span class="b bx">no data</span>':'<span class="b b'+c+'">'+CATL[c]+'</span>';}
+function rcaTxt(s){return s[F.RCA]?s[F.RCA]:'<i style="color:#b26a00">Belum ada RCA</i>';}
 function gb(mb){return mb==null?"&mdash;":(mb/1024).toFixed(1)+" GB";}
 function fmtW(w){return w.replace("_"," ");}
 function pass(i){
@@ -219,7 +220,7 @@ function rtsDetail(ri){
   r.idx.sort((a,b)=>{const x=av(st.week,a),y=av(st.week,b);return (x==null)-(y==null)||x-y;}).forEach(i=>{
     const s=S[i];h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td>'
     +'<td class="'+pcCls(av2(st.week,i))+'">'+pc(av2(st.week,i))+'</td><td class="'+pcCls(av4(st.week,i))+'">'+pc(av4(st.week,i))+'</td>'
-    +'<td>'+badge(av(st.week,i))+'</td><td style="font-size:11px">'+(s[F.RCA]||"&mdash;")+'</td></tr>';});
+    +'<td>'+badge(av(st.week,i))+'</td><td style="font-size:11px">'+rcaTxt(s)+'</td></tr>';});
   h+='</tbody></table>';
   $("modalBox").innerHTML=h;$("modal").style.display="flex";}
 function kecDetail(ri){
@@ -230,7 +231,7 @@ function kecDetail(ri){
   r.idx.sort((a,b)=>{const x=av(st.week,a),y=av(st.week,b);return (x==null)-(y==null)||x-y;}).forEach(i=>{
     const s=S[i];h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td>'
     +'<td class="'+pcCls(av2(st.week,i))+'">'+pc(av2(st.week,i))+'</td><td class="'+pcCls(av4(st.week,i))+'">'+pc(av4(st.week,i))+'</td>'
-    +'<td>'+gb((P.data[st.week][i][2]||0)+(P.data[st.week][i][3]||0))+'</td><td>'+badge(av(st.week,i))+'</td><td>'+(s[F.RTS]||"")+'</td><td style="font-size:11px">'+(s[F.RCA]||"&mdash;")+'</td></tr>';});
+    +'<td>'+gb((P.data[st.week][i][2]||0)+(P.data[st.week][i][3]||0))+'</td><td>'+badge(av(st.week,i))+'</td><td>'+(s[F.RTS]||"")+'</td><td style="font-size:11px">'+rcaTxt(s)+'</td></tr>';});
   h+='</tbody></table>';
   $("modalBox").innerHTML=h;$("modal").style.display="flex";}
 function siteDetail(i){
@@ -243,7 +244,8 @@ function siteDetail(i){
   +'<span><b>Priority:</b> '+(s[F.PRIO]||"-")+'</span><span><b>Owner/Company:</b> '+(s[F.OWN]||"-")+'</span>'
   +'<span><b>Genset:</b> '+(s[F.GEN]||"-")+'</span>'
   +'<span><b>RTS Name:</b> '+(s[F.RTS]||"-")+'</span></div>'
-  +(s[F.RCA]?'<div style="background:#fdf2f2;border-left:4px solid var(--red);padding:8px 12px;border-radius:6px;margin:6px 0;font-size:12.5px"><b>RCA (Sub Cause):</b> '+s[F.RCA]+'</div>':'')
+  +(s[F.RCA]?'<div style="background:#fdf2f2;border-left:4px solid var(--red);padding:8px 12px;border-radius:6px;margin:6px 0;font-size:12.5px"><b>RCA (Sub Cause):</b> '+s[F.RCA]+'</div>'
+    :'<div style="background:#f6f6f6;border-left:4px solid #bbb;padding:8px 12px;border-radius:6px;margin:6px 0;font-size:12.5px;color:#777"><b>RCA:</b> Belum ada RCA untuk site ini di file NAV CJ terbaru (site sehat, atau belum dianalisis tim RCA)</div>')
   +'<canvas id="cSite" height="120"></canvas>'
   +'<table class="inner"><thead><tr><th>Minggu</th><th>Avail 2G</th><th>Avail 4G</th><th>Traffic 2G</th><th>Traffic 4G</th><th>Kategori (2G)</th></tr></thead><tbody>';
   W.forEach(w=>{const r=P.data[w][i];
@@ -295,7 +297,7 @@ function rTop(el){
   top.forEach(([i,v],n)=>{const s=S[i];
     const w3=W.slice(-3).map(w=>pc(st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0])).join(" &rarr; ");
     h+='<tr><td><b>'+(n+1)+'</b></td><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td>'
-    +'<td class="'+pcCls(v)+'"><b>'+pc(v)+'</b></td><td style="font-size:11px">'+w3+'</td><td>'+(s[F.TRAN]||"")+'</td><td>'+(s[F.PRIO]||"")+'</td><td>'+(s[F.RTS]||"")+'</td><td style="font-size:11px">'+(s[F.RCA]||"&mdash;")+'</td></tr>';});
+    +'<td class="'+pcCls(v)+'"><b>'+pc(v)+'</b></td><td style="font-size:11px">'+w3+'</td><td>'+(s[F.TRAN]||"")+'</td><td>'+(s[F.PRIO]||"")+'</td><td>'+(s[F.RTS]||"")+'</td><td style="font-size:11px">'+rcaTxt(s)+'</td></tr>';});
   h+='</tbody></table><div class="note">Filter kabupaten/kategori/pencarian di atas ikut berlaku. Klik Site ID untuk riwayat lengkap.</div></div>';
   el.innerHTML=h;}
 function rMonthly(el){
@@ -321,7 +323,7 @@ function rMonthly(el){
   bad.slice(0,200).forEach(([i,m])=>{const s=S[i];
     h+='<tr><td class="clk" onclick="siteDetail('+i+')">'+s[F.SID]+'</td><td>'+s[F.NAME]+'</td><td>'+s[F.KEL]+'</td><td>'+s[F.KEC]+'</td><td>'+s[F.KAB]+'</td><td class="pct2"><b>'+pc(m)+'</b></td>';
     wks.forEach(w=>{const v=st.tech==="4g"?P.data[w][i][1]:P.data[w][i][0];h+='<td class="'+pcCls(v)+'">'+pc(v)+'</td>';});
-    h+='<td>'+(s[F.RTS]||"")+'</td><td style="font-size:11px">'+(s[F.RCA]||"&mdash;")+'</td></tr>';});
+    h+='<td>'+(s[F.RTS]||"")+'</td><td style="font-size:11px">'+rcaTxt(s)+'</td></tr>';});
   h+='</tbody></table></div>';
   el.innerHTML=h;
   $("selMon").onchange=e=>{window._selMon=e.target.value;rMonthly(el);};}
