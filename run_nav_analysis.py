@@ -86,9 +86,9 @@ def find_week_files():
         if not m:
             continue
         wk = f"{m.group(2)}_W{int(m.group(1)):02d}"
-        files = sorted(glob.glob(os.path.join(d, "*.xlsb")))
-        if files:
-            out[wk] = files[-1]
+        files = glob.glob(os.path.join(d, "*.xlsb"))
+        if files:  # file terbaru (mis. hasil unduh ulang "... (1).xlsb")
+            out[wk] = max(files, key=os.path.getmtime)
     return out
 
 class KelurahanLookup:
